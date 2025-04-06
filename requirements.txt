@@ -1,0 +1,11 @@
+google.generativeai
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.ollama import Ollama
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+fastapi 
+uvicorn
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+pip install llama-index-embeddings-huggingface
+
+python-multipart
+pip install llama-index-llms-google-genai
