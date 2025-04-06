@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyMate - Advanced RAG Chatbot</title> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* --- Dark Theme Variables --- */
+        :root {
+            --primary-color: #4f85e0; /* Slightly adjusted blue */
+            --primary-dark: #3a6ab5;
+            --bg-main: #121212; /* Very dark grey */
+            --bg-container: #1e1e1e; /* Dark grey for containers */
+            --bg-sidebar: #1a1a1a; /* Slightly different dark for sidebar */
+            --bg-input: #2a2a2a; /* Dark grey for inputs */
+            --bg-bot-message: #2c2c2c; /* Dark grey for bot messages */
+            --text-primary: #e0e0e0; /* Light grey for primary text */
+            --text-secondary: #a0a0a0; /* Medium grey for secondary text */
+            --border-color: #333333; /* Dark border */
+            --success: #4CAF50; /* Green */
+            --error: #F44336; /* Red */
+            --warning: #FF9800; /* Orange */
+            --success-bg: rgba(76, 175, 80, 0.1);
+            --error-bg: rgba(244, 67, 54, 0.1);
+            --warning-bg: rgba(255, 152, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; /* Modern font stack */
+        }
+
+        body {
+            background-color: var(--bg-main);
+            /* Subtle gradient background graphic */
+            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0.02) 75%, transparent 75%, transparent);
+            background-size: 60px 60px; /* Size of the pattern */
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1300px; /* Slightly wider */
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--bg-container);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Stronger shadow for dark */
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-weight: 600; /* Slightly bolder */
+        }
+        header h1 i {
+            margin-right: 10px; /* Space icon from text */
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 320px 1fr; /* Slightly wider sidebar */
+            gap: 25px;
+            background-color: var(--bg-container);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+            overflow: hidden;
+            min-height: 80vh; /* Taller */
+            border: 1px solid var(--border-color);
+        }
+
+        .sidebar {
+            background-color: var(--bg-sidebar);
+            padding: 25px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .config-section {
+            margin-bottom: 1.8rem; /* Consistent spacing */
+        }
+
+        .config-section h2 {
+            font-size: 1.1em; /* Adjusted size */
+            margin-bottom: 1.2rem;
+            color: var(--text-primary); /* Lighter heading */
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.6rem;
+            font-weight: 500; /* Normal weight */
+        }
+
+        .config-section h2 i {
+            margin-right: 10px;
+            color: var(--primary-color); /* Icon color */
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9em;
+            color: var(--text-secondary); /* Secondary color for labels */
+        }
+
+        select, input[type="text"], input[type="password"], input[type="file"] {
+            width: 100%;
+            padding: 12px; /* Slightly more padding */
+            border-radius: 5px; /* Slightly rounder */
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            background-color: var(--bg-input); /* Dark input background */
+            color: var(--text-primary); /* Light text in input */
+        }
+        input[type="file"] { padding: 8px;} /* Adjust file input padding */
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 133, 224, 0.3); /* Adjusted focus shadow */
+        }
+        /* Style placeholder text */
+        ::placeholder { color: var(--text-secondary); opacity: 0.7; }
+        :-ms-input-placeholder { color: var(--text-secondary); opacity: 0.7; }
+        ::-ms-input-placeholder { color: var(--text-secondary); opacity: 0.7; }
+
+
+        .hidden { display: none !important; }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Increased gap */
+            padding: 12px 18px; /* Adjusted padding */
+            border-radius: 5px;
+        }
+        button:hover { background-color: var(--primary-dark); }
+        button:active { transform: scale(0.98); /* Click effect */ }
+        button:disabled { background-color: #3a3a3a; color: #777777; cursor: not-allowed; }
+
+        button.secondary {
+            background-color: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        button.secondary:hover { background-color: #3a3a3a; }
+        button.secondary:disabled { background-color: #2a2a2a; color: #555; border-color: #444;}
+
+
+        .chat-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 600px;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem; /* Increased gap */
+            border-bottom: 1px solid var(--border-color);
+            min-height: 500px;
+            background-color: var(--bg-container); /* Match container bg */
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 18px; /* Consistent padding */
+            border-radius: 12px; /* More pronounced rounding */
+            position: relative;
+            line-height: 1.6;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Subtle shadow on messages */
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px; /* Adjusted rounding */
+        }
+
+        .bot-message {
+            background-color: var(--bg-bot-message);
+            color: var(--text-primary); /* Use primary text color */
+            align-self: flex-start;
+            border-bottom-left-radius: 4px; /* Adjusted rounding */
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px; /* More padding */
+            gap: 15px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-sidebar); /* Match sidebar bg */
+        }
+        .chat-input input { flex-grow: 1; }
+        .chat-input button { width: auto; padding: 12px 22px; }
+
+        /* Status Indicator */
+        .status-indicator {
+            margin-top: 12px;
+            padding: 10px 12px; /* Adjusted padding */
+            border-radius: 5px;
+            font-size: 0.9em;
+            text-align: center;
+            word-wrap: break-word;
+            min-height: 2.2em;
+            border-width: 1px;
+            border-style: solid;
+        }
+        .status-success { background-color: var(--success-bg); color: var(--success); border-color: var(--success); }
+        .status-error { background-color: var(--error-bg); color: var(--error); border-color: var(--error); }
+        .status-warning { background-color: var(--warning-bg); color: var(--warning); border-color: var(--warning); }
+
+
+        /* Code block styling */
+        pre {
+            background-color: #1c1c1c; /* Slightly different dark for code */
+            color: #d4d4d4; /* Light grey code text */
+            padding: 1em;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid var(--border-color); /* Subtle border */
+        }
+        /* Ensure highlight.js styles take precedence if needed */
+        pre code.hljs { display: block; overflow-x: auto; padding: 1em; background: #1c1c1c; color: #d4d4d4; border-radius: 5px;}
+        /* Example highlight styles (comes from github-dark.min.css) */
+
+
+        /* Upload Section */
+        .upload-section { margin-top: 1.8rem; padding-top: 1.8rem; border-top: 1px solid var(--border-color); }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 12px;}
+        .upload-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-selected { margin-top: 8px; margin-bottom: 12px; font-size: 0.85em; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 1.2em; }
+
+        /* Toggle Switch Styles */
+        .toggle-container { display: flex; align-items: center; margin: 20px 0;}
+        .toggle-container label { margin-right: 10px; font-weight: 500; font-size: 0.9em; color: var(--text-secondary);}
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 24px;}
+        .toggle-switch input { opacity: 0; width: 0; height: 0;}
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 24px;} /* Darker off state */
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;}
+        input:checked + .toggle-slider { background-color: var(--primary-color);}
+        input:checked + .toggle-slider:before { transform: translateX(26px);}
+
+        /* Loader Styles */
+        .loader { display: none; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.2); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader.inline { display: inline-block; vertical-align: middle; margin-left: 8px; }
+        /* Loader color inside primary button */
+        button:not(.secondary) .loader { border-top-color: #fff; }
+        /* Loader color inside secondary button */
+        button.secondary .loader { border-top-color: var(--primary-color); }
+        /* Loader color next to chat input */
+        .chat-input .loader { width: 20px; height: 20px; border-width: 3px; margin-left: 10px; border-color: rgba(255, 255, 255, 0.2); border-top-color: var(--primary-color);}
+
+
+        /* --- NEW: PYQS Section Styles --- */
+        .pyqs-folder-list button {
+            width: 100%;
+            margin-bottom: 6px;
+            background-color: var(--bg-input); /* Match input background */
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            text-align: left;
+            padding-left: 15px;
+        }
+        .pyqs-folder-list button:hover { background-color: #3a3a3a; color: var(--text-primary); }
+        .pyqs-folder-list button:disabled { background-color: #2a2a2a; color: #555; border-color: #444; cursor: not-allowed;}
+
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+             .app-container { grid-template-columns: 1fr; min-height: 90vh;}
+             .sidebar { border-right: none; border-bottom: 1px solid var(--border-color); }
+             header h1 { font-size: 1.5em; }
+             .chat-messages { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-book-reader"></i> StudyMate</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="app-container">
+            <aside class="sidebar">
+                <section class="config-section">
+                    <h2><i class="fas fa-sliders-h"></i> Model Configuration</h2>
+                    <div class="form-group">
+                        <label for="modelSelect">Provider:</label>
+                        <select id="modelSelect" onchange="updateModelOptions()">
+                            <option value="">-- Select Provider --</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="local">Local LLM</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="modelListContainer">
+                        <label for="modelList">Model:</label>
+                        <select id="modelList"></select>
+                    </div>
+                    <div class="form-group hidden" id="apiKeyContainer">
+                        <label for="apiKey">API Key:</label>
+                        <input type="password" id="apiKey" placeholder="Enter API key" />
+                    </div>
+                    <button id="configBtn" onclick="submitModelConfig()">
+                        Apply Configuration <span class="loader inline" id="configLoader"></span>
+                    </button>
+                    <div id="configStatus" class="status-indicator" style="display: none;"></div> </section>
+
+                <section class="config-section">
+                    <h2><i class="fas fa-book"></i> Query PYQS</h2>
+                    <button id="loadPyqsBtn" onclick="loadPyqsFolders()" class="secondary" disabled> Load PYQS Folders <span class="loader inline" id="pyqsListLoader"></span>
+                    </button>
+                    <div id="pyqsListStatus" class="status-indicator" style="display: none;"></div>
+                    <div id="pyqsFolderList" class="pyqs-folder-list" style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                        </div>
+                    <div id="pyqsLoadStatus" class="status-indicator" style="display: none;"></div>
+                </section>
+
+                <section class="config-section upload-section">
+                    <h2><i class="fas fa-file-upload"></i> Upload Documents</h2>
+                    <div class="form-group">
+                        <label for="docId">Document ID (optional):</label>
+                        <input type="text" id="docId" placeholder="Custom document identifier" />
+                    </div>
+                    <div class="upload-btn-wrapper">
+                        <button class="secondary">
+                            <i class="fas fa-file"></i> Select File
+                        </button>
+                        <input type="file" id="fileUpload" accept=".pdf,.txt,.md,.docx,.csv" />
+                    </div>
+                    <div id="fileSelected" class="file-selected">No file selected</div>
+                    <button id="uploadBtn" onclick="uploadFile()" style="margin-top: 10px;" disabled> Upload Document <span class="loader inline" id="uploadLoader"></span>
+                    </button>
+                    <div id="uploadStatus" class="status-indicator" style="display: none;"></div>
+                </section>
+
+                <div class="toggle-container">
+                    <label for="summaryToggle">Use Summary Index:</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="summaryToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </aside>
+
+            <main class="chat-section">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        Hello! I'm StudyMate. Please configure a model in the sidebar to get started. You can then upload documents or load PYQS.
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input
+                        type="text"
+                        id="userQuery"
+                        placeholder="Configure model first..."
+                        onkeypress="if(event.key === 'Enter' && !event.shiftKey) sendQuery()"
+                        disabled
+                    />
+                    <button onclick="sendQuery()" id="sendBtn" disabled>
+                        Send <i class="fas fa-paper-plane"></i>
+                    </button>
+                    <div class="loader" id="queryLoader"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript (Keep all functions from previous version) ---
+        const modelOptions = { /* Keep updated modelOptions */
+             openai: ["gpt-3.5-turbo", "gpt-4.5-preview", "o3-mini", "o1-pro", "gpt-4o"],
+             gemini: ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"],
+             anthropic: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku", "claude-3.5-sonnet"],
+             local: ["llama3", "deepseek", "mistral-7b", "mixtral-8x7b"]
+        };
+        const API_BASE_URL = "http://127.0.0.1:8000";
+        let chatHistory = [];
+        let isModelConfigured = false;
+
+        // UI Elements (Cache them)
+        const queryInput = document.getElementById("userQuery");
+        const sendBtn = document.getElementById("sendBtn");
+        const configBtn = document.getElementById("configBtn");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const loadPyqsBtn = document.getElementById("loadPyqsBtn");
+        const chatMessages = document.getElementById("chatMessages");
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateChatAvailability();
+            updateModelOptions(); // Initial population if needed
+        });
+
+        // --- Loading State Utility ---
+        function setLoading(button, loaderElement, isLoading, loadingText = "Loading...") {
+            // (Keep the improved setLoading function from the previous response)
+            const originalText = button.dataset.originalText || button.textContent.trim().split('<')[0].trim(); // Get text before potential span
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = originalText;
+            }
+            button.disabled = isLoading;
+            if (loaderElement) loaderElement.style.display = isLoading ? 'inline-block' : 'none';
+
+            let textNode = button.firstChild;
+            while(textNode){
+                if(textNode.nodeType === 3){ // Node.TEXT_NODE
+                    textNode.textContent = isLoading ? loadingText : originalText;
+                    break;
+                }
+                textNode = textNode.nextSibling;
+            }
+             // Restore text if it was completely replaced (e.g., no text node found initially)
+             if(!textNode && !isLoading && button.dataset.originalText){
+                  // Find icon if present
+                  const icon = button.querySelector('i');
+                  button.textContent = originalText; // Replace content
+                  if(icon) button.prepend(icon); // Re-add icon if it was removed
+                  // Re-add loader span but hidden
+                  if(loaderElement) {
+                      loaderElement.style.display = 'none';
+                      button.appendChild(loaderElement);
+                  }
+             }
+        }
+
+         // --- Status Display Utility ---
+         function showStatus(element, message, type = "success") {
+             // (Keep the showStatus function from the previous response)
+             element.textContent = message;
+             element.className = `status-indicator status-${type}`;
+             element.style.display = message ? 'block' : 'none';
+         }
+
+         // --- Check/Update Chat Availability ---
+         function updateChatAvailability() {
+             // (Keep the updateChatAvailability function from the previous response)
+             const chatEnabled = isModelConfigured;
+             queryInput.disabled = !chatEnabled;
+             sendBtn.disabled = !chatEnabled;
+             queryInput.placeholder = chatEnabled ? "Ask StudyMate..." : "Configure model first...";
+             uploadBtn.disabled = !isModelConfigured;
+             loadPyqsBtn.disabled = !isModelConfigured;
+         }
+
+        // --- Model Configuration ---
+        function updateModelOptions() { /* (Keep this function) */
+            const selectedProvider = document.getElementById("modelSelect").value;
+             const modelList = document.getElementById("modelList");
+             const modelListContainer = document.getElementById("modelListContainer");
+             const apiKeyContainer = document.getElementById("apiKeyContainer");
+             modelList.innerHTML = "";
+             if (!selectedProvider) { modelListContainer.classList.add("hidden"); apiKeyContainer.classList.add("hidden"); return; }
+             (modelOptions[selectedProvider] || []).forEach(model => { const option = document.createElement("option"); option.value = model; option.textContent = model; modelList.appendChild(option); });
+             modelListContainer.classList.remove("hidden");
+             apiKeyContainer.classList.toggle("hidden", selectedProvider === "local");
+             if (selectedProvider === "local") document.getElementById("apiKey").value = "";
+        }
+        async function submitModelConfig() { /* (Keep this function using utilities) */
+             const provider = document.getElementById("modelSelect").value;
+             const modelName = document.getElementById("modelList").value;
+             const apiKey = document.getElementById("apiKey").value;
+             const configStatus = document.getElementById("configStatus");
+             const configLoader = document.getElementById("configLoader");
+
+             if (!provider || !modelName || (provider !== "local" && !apiKey)) {
+                 showStatus(configStatus, "Provider, model, and API key (if applicable) are required.", "error"); return;
+             }
+             setLoading(configBtn, configLoader, true, "Applying...");
+             showStatus(configStatus, "", "success");
+
+             try {
+                 const response = await fetch(`${API_BASE_URL}/set_config`, { /* ... */
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ provider: provider, modelName: modelName, apiKey: apiKey })
+                 });
+                 const data = await response.json();
+                 if (!response.ok) throw new Error(data.detail || `HTTP error! status: ${response.status}`);
+                 showStatus(configStatus, data.message, "success");
+                 isModelConfigured = true;
+                 addMessage(`System: Model configured: ${modelName} (${provider}). Ready to proceed.`, false);
+             } catch (error) {
+                 console.error("Config Error:", error);
+                 showStatus(configStatus, `Error: ${error.message}`, "error");
+                 isModelConfigured = false;
+             } finally {
+                 setLoading(configBtn, configLoader, false);
+                 updateChatAvailability();
+             }
+        }
+
+        // --- PYQS Folder Logic ---
+        async function loadPyqsFolders() { /* (Keep this function using utilities) */
+             const pyqsListStatus = document.getElementById("pyqsListStatus");
+             const pyqsFolderListDiv = document.getElementById("pyqsFolderList");
+             const pyqsListLoader = document.getElementById("pyqsListLoader");
+             if (!isModelConfigured) { showStatus(pyqsListStatus, "Configure model first", "error"); return; }
+             setLoading(loadPyqsBtn, pyqsListLoader, true, "Loading...");
+             showStatus(pyqsListStatus, "", "success");
+             pyqsFolderListDiv.innerHTML = "";
+             try {
+                 const response = await fetch(`${API_BASE_URL}/list_pyqs_folders`);
+                 const data = await response.json();
+                 if (!response.ok) throw new Error(data.detail || data.error || `HTTP error! status: ${response.status}`);
+                 if (data.folders && data.folders.length > 0) {
+                     data.folders.forEach(folder => { const button = document.createElement("button"); button.textContent = folder; button.onclick = () => selectPyqsFolder(folder); pyqsFolderListDiv.appendChild(button); });
+                     showStatus(pyqsListStatus, `Found ${data.folders.length} folder(s). Click one to load.`, "success");
+                 } else { showStatus(pyqsListStatus, "No PYQS folders found.", "warning"); }
+             } catch (error) { console.error("PYQS List Error:", error); showStatus(pyqsListStatus, `Error loading PYQS folders: ${error.message}`, "error");
+             } finally { setLoading(loadPyqsBtn, pyqsListLoader, false); }
+        }
+        async function selectPyqsFolder(folderName) { /* (Keep this function using utilities) */
+             const pyqsLoadStatus = document.getElementById("pyqsLoadStatus");
+             const pyqsFolderButtons = document.querySelectorAll("#pyqsFolderList button");
+             if (!isModelConfigured) { showStatus(pyqsLoadStatus, "Configure model first", "error"); return; }
+             showStatus(pyqsLoadStatus, `Loading '${folderName}' files and re-indexing...`, "warning");
+             pyqsFolderButtons.forEach(b => b.disabled = true);
+             try {
+                 const formData = new FormData(); formData.append('folder_name', folderName);
+                 const response = await fetch(`${API_BASE_URL}/load_pyqs_folder_to_docs`, { method: "POST", body: formData });
+                 const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP error! status: ${response.status}`);
+                 showStatus(pyqsLoadStatus, data.message, "success"); addMessage(`System: Loaded PYQS folder '${folderName}'. Index updated.`, false);
+             } catch (error) { console.error("PYQS Load Error:", error); showStatus(pyqsLoadStatus, `Error loading '${folderName}': ${error.message}`, "error");
+             } finally { pyqsFolderButtons.forEach(b => b.disabled = false); }
+        }
+
+        // --- Document Upload Logic ---
+        document.getElementById("fileUpload").addEventListener("change", function(e) { /* (Keep) */
+            const fileName = e.target.files[0]?.name || "No file selected"; document.getElementById("fileSelected").textContent = fileName;
+        });
+        async function uploadFile() { /* (Keep this function using utilities) */
+            const fileInput = document.getElementById("fileUpload"); const docId = document.getElementById("docId").value; const uploadStatus = document.getElementById("uploadStatus"); const uploadLoader = document.getElementById("uploadLoader");
+            if (!isModelConfigured) { showStatus(uploadStatus, "Configure model first", "error"); return; }
+            if (!fileInput.files || fileInput.files.length === 0) { showStatus(uploadStatus, "Please select a file first", "error"); return; }
+            const file = fileInput.files[0]; const formData = new FormData(); formData.append("file", file); if (docId) formData.append("filename_as_doc_id", docId);
+            setLoading(uploadBtn, uploadLoader, true, "Uploading..."); showStatus(uploadStatus, "", "success");
+            try {
+                const response = await fetch(`${API_BASE_URL}/uploadFile`, { method: "POST", body: formData }); const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP error! status: ${response.status}`);
+                showStatus(uploadStatus, data.message, "success"); addMessage(`System: Document uploaded: ${file.name}`, false);
+                fileInput.value = ""; document.getElementById("fileSelected").textContent = "No file selected"; document.getElementById("docId").value = "";
+            } catch (error) { console.error("Upload Error:", error); showStatus(uploadStatus, `Error: ${error.message}`, "error");
+            } finally { setLoading(uploadBtn, uploadLoader, false); }
+        }
+
+        // --- Send Query Logic ---
+        async function sendQuery() { /* (Keep this function using utilities) */
+            const query = queryInput.value.trim(); const useSummary = document.getElementById("summaryToggle").checked; const queryLoader = document.getElementById("queryLoader");
+            if (!query || !isModelConfigured) return;
+            addMessage(query, true); queryInput.value = ""; queryLoader.style.display = "inline-block"; sendBtn.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE_URL}/query`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: query, use_summary: useSummary }) });
+                const data = await response.json(); if (!response.ok) throw new Error(data.detail || data.response || `HTTP error! status: ${response.status}`);
+                addMessage(data.response, false);
+            } catch (error) { console.error("Query Error:", error); addMessage(`Error: ${error.message}`, false);
+            } finally { queryLoader.style.display = "none"; sendBtn.disabled = false; queryInput.focus(); }
+        }
+
+        // --- Add Message to UI & History ---
+        function addMessage(text, isUser) { /* (Keep function, ensuring Markdown/Highlighting works) */
+             const messageDiv = document.createElement("div"); messageDiv.className = isUser ? "message user-message" : "message bot-message";
+             if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+                  messageDiv.innerHTML = marked.parse(text || ""); messageDiv.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
+             } else { messageDiv.innerHTML = processMarkdown(text || ""); } // Fallback
+             chatMessages.appendChild(messageDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+             chatHistory.push({ role: isUser ? "user" : "assistant", content: text });
+        }
+
+        // --- Basic Markdown Processing & HTML Escaping (Keep if not using libraries) ---
+        function processMarkdown(text) { /* Keep */
+             text = text.replace(/```([\w]*)\n([\s\S]*?)```/g, function(match, language, code) { return `<pre><code class="language-${language || 'plaintext'}">${escapeHtml(code)}</code></pre>`; });
+             text = text.replace(/\n/g, "<br>"); return text; // Basic <br> replacement
+        }
+        function escapeHtml(unsafe) { /* Keep */
+             return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+    </script>
+</body>
+</html>
